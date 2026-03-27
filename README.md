@@ -119,6 +119,19 @@ az deployment group create \
 > **注意**: Bicep の直接デプロイでは、AD の再起動完了を ARM が完全に追跡できない場合があります。
 > ドメイン参加が失敗した場合は、AD の再起動完了後に再デプロイしてください。
 
+### 方法 3: Deploy to Azure ボタン
+
+ブラウザから Azure Portal へ直接デプロイできます。
+
+| テンプレート | ボタン |
+|---|---|
+| **既定 (送信 IP あり)** | [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fnksato%2Fazure-virtual-onprem%2Fmain%2Finfra%2Fmain.json) |
+| **閉域構成** | [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fnksato%2Fazure-virtual-onprem%2Fmain%2Finfra%2Fmain-closed.json) |
+| **NAT Gateway 付き (推奨)** | [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fnksato%2Fazure-virtual-onprem%2Fmain%2Finfra%2Fmain-nat.json) |
+
+> **注意**: Deploy to Azure ボタンでは Deploy-Lab.ps1 のリトライ処理は行われません。
+> ドメイン参加が失敗した場合は、AD の再起動完了後にもう一度ボタンからデプロイしてください。
+
 ### パラメータ
 
 | パラメータ | 必須 | 既定値 | 説明 |

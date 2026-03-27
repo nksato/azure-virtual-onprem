@@ -1,5 +1,6 @@
 # ARM テンプレート (Bicep から生成)
 *.json
+!infra/*.json
 !package.json
 
 # Visual Studio / IDE

@@ -1,0 +1,13 @@
+# ARM テンプレート (Bicep から生成)
+*.json
+!package.json
+
+# Visual Studio / IDE
+.vs/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

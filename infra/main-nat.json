@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "14178401898625634259"
+      "templateHash": "7499462732315747751"
     }
   },
   "parameters": {
@@ -57,12 +57,27 @@
       }
     }
   },
+  "variables": {
+    "dcTags": {
+      "Role": "DomainController"
+    },
+    "dbTags": {
+      "Role": "Database"
+    },
+    "webTags": {
+      "Role": "WebServer"
+    },
+    "sharedTags": {
+      "Role": "Shared"
+    }
+  },
   "resources": [
     {
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2024-05-01",
       "name": "OnPrem-Server-NSG",
       "location": "[parameters('location')]",
+      "tags": "[variables('sharedTags')]",
       "properties": {
         "securityRules": [
           {
@@ -99,6 +114,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-NatGw-PIP",
       "location": "[parameters('location')]",
+      "tags": "[variables('sharedTags')]",
       "sku": {
         "name": "Standard"
       },
@@ -111,6 +127,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-NatGw",
       "location": "[parameters('location')]",
+      "tags": "[variables('sharedTags')]",
       "sku": {
         "name": "Standard"
       },
@@ -131,6 +148,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-VNet",
       "location": "[parameters('location')]",
+      "tags": "[variables('sharedTags')]",
       "properties": {
         "addressSpace": {
           "addressPrefixes": [
@@ -180,6 +198,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-Bastion-PIP",
       "location": "[parameters('location')]",
+      "tags": "[variables('sharedTags')]",
       "sku": {
         "name": "Standard"
       },
@@ -192,6 +211,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-Bastion",
       "location": "[parameters('location')]",
+      "tags": "[variables('sharedTags')]",
       "sku": {
         "name": "Basic"
       },
@@ -220,6 +240,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-AD-NIC",
       "location": "[parameters('location')]",
+      "tags": "[variables('dcTags')]",
       "properties": {
         "ipConfigurations": [
           {
@@ -243,6 +264,7 @@
       "apiVersion": "2024-07-01",
       "name": "OnPrem-AD",
       "location": "[parameters('location')]",
+      "tags": "[variables('dcTags')]",
       "properties": {
         "hardwareProfile": {
           "vmSize": "Standard_B2ms"
@@ -305,6 +327,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-SQL-NIC",
       "location": "[parameters('location')]",
+      "tags": "[variables('dbTags')]",
       "properties": {
         "ipConfigurations": [
           {
@@ -328,6 +351,7 @@
       "apiVersion": "2024-07-01",
       "name": "OnPrem-SQL",
       "location": "[parameters('location')]",
+      "tags": "[variables('dbTags')]",
       "properties": {
         "hardwareProfile": {
           "vmSize": "Standard_B2ms"
@@ -382,6 +406,7 @@
       "apiVersion": "2023-10-01",
       "name": "OnPrem-SQL",
       "location": "[parameters('location')]",
+      "tags": "[variables('dbTags')]",
       "properties": {
         "virtualMachineResourceId": "[resourceId('Microsoft.Compute/virtualMachines', 'OnPrem-SQL')]",
         "sqlServerLicenseType": "PAYG",
@@ -435,6 +460,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-Web-NIC",
       "location": "[parameters('location')]",
+      "tags": "[variables('webTags')]",
       "properties": {
         "ipConfigurations": [
           {
@@ -458,6 +484,7 @@
       "apiVersion": "2024-07-01",
       "name": "OnPrem-Web",
       "location": "[parameters('location')]",
+      "tags": "[variables('webTags')]",
       "properties": {
         "hardwareProfile": {
           "vmSize": "Standard_B2ms"
@@ -546,6 +573,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-VpnGw-PIP",
       "location": "[parameters('location')]",
+      "tags": "[variables('sharedTags')]",
       "sku": {
         "name": "Standard"
       },
@@ -558,6 +586,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-VpnGw",
       "location": "[parameters('location')]",
+      "tags": "[variables('sharedTags')]",
       "properties": {
         "gatewayType": "Vpn",
         "vpnType": "RouteBased",
@@ -590,6 +619,7 @@
       "apiVersion": "2024-05-01",
       "name": "Azure-LocalGw",
       "location": "[parameters('location')]",
+      "tags": "[variables('sharedTags')]",
       "properties": {
         "gatewayIpAddress": "[parameters('remoteGatewayIp')]",
         "localNetworkAddressSpace": {
@@ -605,6 +635,7 @@
       "apiVersion": "2024-05-01",
       "name": "OnPrem-to-Azure-S2S",
       "location": "[parameters('location')]",
+      "tags": "[variables('sharedTags')]",
       "properties": {
         "connectionType": "IPsec",
         "virtualNetworkGateway1": {

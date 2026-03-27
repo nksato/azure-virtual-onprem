@@ -100,10 +100,10 @@ NAT Gateway: なし        NAT Gateway: なし        NAT Gateway: あり
 .\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -Location "japaneast"
 
 # 閉域構成 (送信完全ブロック)
-.\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "main-closed.bicep"
+.\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-closed.bicep"
 
 # NAT Gateway 付き (外部アクセス必要時)
-.\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "main-nat.bicep"
+.\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-nat.bicep"
 ```
 
 ### 方法 2: Azure CLI (Bicep 直接デプロイ)
@@ -112,7 +112,7 @@ NAT Gateway: なし        NAT Gateway: なし        NAT Gateway: あり
 # テンプレートを選択して指定
 az deployment group create \
   --resource-group <リソースグループ名> \
-  --template-file <テンプレートファイル> \
+  --template-file infra/<テンプレートファイル> \
   --parameters adminPassword='<パスワード>' vpnSharedKey='<共有キー>'
 ```
 

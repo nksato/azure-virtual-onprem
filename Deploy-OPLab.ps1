@@ -10,10 +10,10 @@
 .PARAMETER Location
     リソースのリージョン (既定: japaneast)
 .PARAMETER TemplateFile
-    使用する Bicep テンプレート (既定: main.bicep)
-    - main.bicep        : 既定の送信 IP あり (アラート表示)
-    - main-closed.bicep : 閉域構成 (送信ブロック)
-    - main-nat.bicep    : NAT Gateway 付き (送信可能)
+    使用する Bicep テンプレート (既定: infra/main.bicep)
+    - infra/main.bicep        : 既定の送信 IP あり (アラート表示)
+    - infra/main-closed.bicep : 閉域構成 (送信ブロック)
+    - infra/main-nat.bicep    : NAT Gateway 付き (送信可能)
 .PARAMETER AdminUsername
     VM の管理者ユーザー名 (既定: labadmin)
 .PARAMETER DomainName
@@ -27,9 +27,9 @@
 .EXAMPLE
     .\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -Location "japaneast"
 .EXAMPLE
-    .\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "main-closed.bicep"
+    .\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-closed.bicep"
 .EXAMPLE
-    .\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "main-nat.bicep"
+    .\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-nat.bicep"
 #>
 
 [CmdletBinding()]
@@ -38,8 +38,8 @@ param(
     [string]$ResourceGroupName,
 
     [string]$Location = 'japaneast',
-    [ValidateSet('main.bicep', 'main-closed.bicep', 'main-nat.bicep')]
-    [string]$TemplateFile = 'main.bicep',
+    [ValidateSet('infra/main.bicep', 'infra/main-closed.bicep', 'infra/main-nat.bicep')]
+    [string]$TemplateFile = 'infra/main.bicep',
     [string]$AdminUsername = 'labadmin',
     [string]$DomainName = 'lab.local',
     [string]$RemoteGatewayIp = '',

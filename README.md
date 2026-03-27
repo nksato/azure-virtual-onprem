@@ -92,18 +92,18 @@ NAT Gateway: なし        NAT Gateway: なし        NAT Gateway: あり
 
 ### 方法 1: PowerShell スクリプト (推奨)
 
-再起動待機・エラーハンドリング付きのスクリプト [Deploy-OPLab.ps1](Deploy-OPLab.ps1) を使用します。
+再起動待機・エラーハンドリング付きのスクリプト [Deploy-Lab.ps1](Deploy-Lab.ps1) を使用します。
 `-TemplateFile` パラメータでテンプレートを切り替えられます。
 
 ```powershell
 # 既定の送信 IP あり (既定)
-.\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -Location "japaneast"
+.\Deploy-Lab.ps1 -ResourceGroupName "rg-onpre" -Location "japaneast"
 
 # 閉域構成 (送信完全ブロック)
-.\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-closed.bicep"
+.\Deploy-Lab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-closed.bicep"
 
 # NAT Gateway 付き (外部アクセス必要時)
-.\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-nat.bicep"
+.\Deploy-Lab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-nat.bicep"
 ```
 
 ### 方法 2: Azure CLI (Bicep 直接デプロイ)

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    疑似オンプレミス環境 (OPLab) をデプロイするスクリプト
+    疑似オンプレミス環境をデプロイするスクリプト
 .DESCRIPTION
     Bicep テンプレートを段階的にデプロイし、AD 再起動待機・ドメイン参加の
     リトライ処理を行います。
@@ -25,11 +25,11 @@
 .PARAMETER SkipDomainJoin
     ドメイン参加をスキップする場合に指定
 .EXAMPLE
-    .\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -Location "japaneast"
+    .\Deploy-Lab.ps1 -ResourceGroupName "rg-onpre" -Location "japaneast"
 .EXAMPLE
-    .\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-closed.bicep"
+    .\Deploy-Lab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-closed.bicep"
 .EXAMPLE
-    .\Deploy-OPLab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-nat.bicep"
+    .\Deploy-Lab.ps1 -ResourceGroupName "rg-onpre" -TemplateFile "infra/main-nat.bicep"
 #>
 
 [CmdletBinding()]

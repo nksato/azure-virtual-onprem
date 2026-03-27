@@ -2,6 +2,15 @@
 
 Azure 上にオンプレミス環境を疑似的に再現し、Azure へのマイグレーション元として使用するラボ環境です。
 
+## セットアップの流れ
+
+本環境の構築は **2 段階** で行います。
+
+1. **インフラ構築** (Bicep テンプレート) — VNet・NSG・Bastion・VPN Gateway と 3 台の Windows Server VM (DC01 / DB01 / APP01) を Azure 上にデプロイし、Active Directory ドメインの構成・ドメイン参加まで自動で行います。
+2. **アプリケーション セットアップ** (PowerShell スクリプト) — Bastion 経由で各 VM に RDP 接続し、SQL Server の構成や Parts Unlimited Web アプリのビルド・デプロイを手動で実行します。
+
+インフラだけで疑似オンプレミス環境として利用でき、アプリケーションのセットアップは必要に応じて実施してください。
+
 ## アーキテクチャ図
 
 ```mermaid

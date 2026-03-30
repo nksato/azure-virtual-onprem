@@ -174,39 +174,41 @@ Invoke-WebRequest -Uri http://localhost -UseBasicParsing | Select-Object StatusC
 
 各 VM に Bastion で接続し、以下のコマンドを実行します。
 
-### 3-1. Ping による疎通確認
+> **ICMP (ping) に関する注意**: Windows Firewall の既定動作は「明示的に許可されていないすべての受信トラフィックをブロック」です ([Windows Firewall overview - Microsoft Learn](https://learn.microsoft.com/windows/security/operating-system-security/network-security/windows-firewall/#concepts))。ICMP Echo Request を許可するファイアウォール ルールは既定で無効のため、`ping` やポート指定なしの `Test-NetConnection` は `False` を返します。本手順書では ICMP に依存しない **TCP ポート指定** による疎通確認を採用しています。
+
+### 3-1. TCP ポートによる疎通確認
 
 #### APP01 (10.0.1.6) から実行
 
 ```powershell
 # APP01 → DC01
-Test-NetConnection -ComputerName 10.0.1.4 -InformationLevel Quiet
+Test-NetConnection -ComputerName 10.0.1.4 -Port 3389
 
 # APP01 → DB01
-Test-NetConnection -ComputerName 10.0.1.5 -InformationLevel Quiet
+Test-NetConnection -ComputerName 10.0.1.5 -Port 3389
 ```
 
 #### DB01 (10.0.1.5) から実行
 
 ```powershell
 # DB01 → DC01
-Test-NetConnection -ComputerName 10.0.1.4 -InformationLevel Quiet
+Test-NetConnection -ComputerName 10.0.1.4 -Port 3389
 
 # DB01 → APP01
-Test-NetConnection -ComputerName 10.0.1.6 -InformationLevel Quiet
+Test-NetConnection -ComputerName 10.0.1.6 -Port 3389
 ```
 
 #### DC01 (10.0.1.4) から実行
 
 ```powershell
 # DC01 → DB01
-Test-NetConnection -ComputerName 10.0.1.5 -InformationLevel Quiet
+Test-NetConnection -ComputerName 10.0.1.5 -Port 3389
 
 # DC01 → APP01
-Test-NetConnection -ComputerName 10.0.1.6 -InformationLevel Quiet
+Test-NetConnection -ComputerName 10.0.1.6 -Port 3389
 ```
 
-**期待結果**: すべて `True`
+**期待結果**: すべて `TcpTestSucceeded: True`
 
 ### 3-2. DNS 名前解決の確認 (ドメイン名での接続)
 
@@ -217,14 +219,15 @@ Test-NetConnection -ComputerName 10.0.1.6 -InformationLevel Quiet
 Resolve-DnsName DC01.lab.local | Select-Object Name, IPAddress
 Resolve-DnsName DB01.lab.local | Select-Object Name, IPAddress
 
-# ドメイン名で Ping
-Test-NetConnection -ComputerName DC01.lab.local -InformationLevel Quiet
-Test-NetConnection -ComputerName DB01.lab.local -InformationLevel Quiet
+# ドメイン名で接続確認 (RDP ポート)
+Test-NetConnection -ComputerName DC01.lab.local -Port 3389
+Test-NetConnection -ComputerName DB01.lab.local -Port 3389
 ```
 
 **期待結果**:
 - DC01.lab.local → 10.0.1.4
 - DB01.lab.local → 10.0.1.5
+- 両方 `TcpTestSucceeded: True`
 
 ### 3-3. サービスレベルの接続確認
 

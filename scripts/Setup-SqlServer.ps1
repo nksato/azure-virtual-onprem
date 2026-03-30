@@ -36,14 +36,11 @@ Write-Host '  混合モード (Windows + SQL) に設定しました。' -Foregro
 # ----------------------------------------------------------
 Write-Host '[2/5] TCP/IP プロトコルを有効化...' -ForegroundColor Yellow
 
-Import-Module SqlServer -ErrorAction SilentlyContinue
-
-# WMI で TCP/IP を有効化
-$wmi = New-Object Microsoft.SqlServer.Management.Smo.Wmi.ManagedComputer
-$tcpProtocol = $wmi.ServerInstances[$SqlInstance].ServerProtocols['Tcp']
-if (-not $tcpProtocol.IsEnabled) {
-    $tcpProtocol.IsEnabled = $true
-    $tcpProtocol.Alter()
+# レジストリで TCP/IP を有効化 (SMO WMI アセンブリが利用できない場合があるため)
+$tcpRegPath = "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL16.${SqlInstance}\MSSQLServer\SuperSocketNetLib\Tcp"
+$tcpEnabled = (Get-ItemProperty -Path $tcpRegPath -Name 'Enabled').Enabled
+if ($tcpEnabled -ne 1) {
+    Set-ItemProperty -Path $tcpRegPath -Name 'Enabled' -Value 1
     Write-Host '  TCP/IP を有効化しました。' -ForegroundColor Green
 } else {
     Write-Host '  TCP/IP は既に有効です。' -ForegroundColor Green

@@ -36,14 +36,11 @@ Write-Host '  Set to mixed mode (Windows + SQL).' -ForegroundColor Green
 # ----------------------------------------------------------
 Write-Host '[2/5] Enabling TCP/IP protocol...' -ForegroundColor Yellow
 
-Import-Module SqlServer -ErrorAction SilentlyContinue
-
-# Enable TCP/IP via WMI
-$wmi = New-Object Microsoft.SqlServer.Management.Smo.Wmi.ManagedComputer
-$tcpProtocol = $wmi.ServerInstances[$SqlInstance].ServerProtocols['Tcp']
-if (-not $tcpProtocol.IsEnabled) {
-    $tcpProtocol.IsEnabled = $true
-    $tcpProtocol.Alter()
+# Enable TCP/IP via registry (SMO WMI assembly may not be available)
+$tcpRegPath = "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL16.${SqlInstance}\MSSQLServer\SuperSocketNetLib\Tcp"
+$tcpEnabled = (Get-ItemProperty -Path $tcpRegPath -Name 'Enabled').Enabled
+if ($tcpEnabled -ne 1) {
+    Set-ItemProperty -Path $tcpRegPath -Name 'Enabled' -Value 1
     Write-Host '  TCP/IP enabled.' -ForegroundColor Green
 } else {
     Write-Host '  TCP/IP is already enabled.' -ForegroundColor Green

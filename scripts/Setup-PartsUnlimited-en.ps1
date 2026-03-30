@@ -96,17 +96,20 @@ if (-not $msbuildPath) {
 }
 
 # Check .NET Framework 4.5.1 Targeting Pack (required for build, not included by default)
-$targetingPackPath = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.1"
-if (-not (Test-Path $targetingPackPath)) {
-    Write-Host '  Installing .NET Framework 4.5.1 Developer Pack...' -ForegroundColor Yellow
-    $devPackPath = "$WorkDir\NDP451-DevPack-KB2861696-x86-x64-AllOS-ENU.exe"
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/?linkid=2204105' -OutFile $devPackPath -UseBasicParsing
-    $process = Start-Process -FilePath $devPackPath -ArgumentList '/quiet', '/norestart' -Wait -PassThru
-    if ($process.ExitCode -notin 0, 3010) {
-        throw ".NET 4.5.1 Developer Pack installation failed (ExitCode: $($process.ExitCode))"
+$frameworkOverride = ''
+$refAsmBase = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework"
+if (-not (Test-Path "$refAsmBase\v4.5.1")) {
+    # Use the highest available targeting pack as FrameworkPathOverride
+    if (Test-Path $refAsmBase) {
+        $available = Get-ChildItem $refAsmBase -Directory | Sort-Object Name -Descending | Select-Object -First 1
+        if ($available) {
+            $frameworkOverride = $available.FullName
+            Write-Host "  .NET 4.5.1 Targeting Pack not found. Using $($available.Name) reference assemblies." -ForegroundColor Yellow
+        }
     }
-    Write-Host '  .NET 4.5.1 Developer Pack installed.' -ForegroundColor Green
+    if (-not $frameworkOverride) {
+        throw '.NET Framework reference assemblies not found. Install Build Tools with a .NET targeting pack.'
+    }
 } else {
     Write-Host '  .NET 4.5.1 Targeting Pack found.' -ForegroundColor Green
 }
@@ -148,24 +151,30 @@ Write-Host "  Source code extracted: $srcRoot" -ForegroundColor Green
 Write-Host '[5/7] NuGet package restore & build...' -ForegroundColor Yellow
 
 $solutionPath = Join-Path $srcRoot 'PartsUnlimited.sln'
+$publishDir = "$WorkDir\publish"
+$webProjectPath = Join-Path $srcRoot 'src\PartsUnlimitedWebsite\PartsUnlimitedWebsite.csproj'
 
-# NuGet restore
+# NuGet restore (website project only to avoid modelproj evaluation errors)
 Write-Host '  Restoring NuGet packages...' -ForegroundColor Yellow
-& $nugetPath restore $solutionPath
+& $nugetPath restore $webProjectPath -SolutionDirectory $srcRoot
 if ($LASTEXITCODE -ne 0) { throw 'NuGet restore failed.' }
 
 # MSBuild — build only the website project (skip tests and modeling projects)
-$publishDir = "$WorkDir\publish"
-$webProjectPath = Join-Path $srcRoot 'src\PartsUnlimitedWebsite\PartsUnlimitedWebsite.csproj'
 Write-Host '  Building...' -ForegroundColor Yellow
-& $msbuildPath $webProjectPath `
-    /p:Configuration=Release `
-    /p:DeployOnBuild=true `
-    /p:PublishProfile=FolderProfile `
-    /p:publishUrl=$publishDir `
-    /p:WebPublishMethod=FileSystem `
-    /p:DeployDefaultTarget=WebPublish `
-    /verbosity:minimal
+$msbuildArgs = @(
+    $webProjectPath,
+    '/p:Configuration=Release',
+    '/p:DeployOnBuild=true',
+    '/p:PublishProfile=FolderProfile',
+    "/p:publishUrl=$publishDir",
+    '/p:WebPublishMethod=FileSystem',
+    '/p:DeployDefaultTarget=WebPublish',
+    '/verbosity:minimal'
+)
+if ($frameworkOverride) {
+    $msbuildArgs += "/p:FrameworkPathOverride=$frameworkOverride"
+}
+& $msbuildPath @msbuildArgs
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 Write-Host '  Build successful.' -ForegroundColor Green
 

@@ -62,12 +62,21 @@ if (-not $existingRule) {
 }
 
 # ----------------------------------------------------------
-# 4. Restart SQL Server to apply changes
+# 4. Restart SQL Server in single-user mode to apply changes
+#    and allow login creation (SYSTEM is not sysadmin by default
+#    on Azure SQL VM images, but single-user mode grants sysadmin
+#    to the first connection)
 # ----------------------------------------------------------
-Write-Host '[4/5] Restarting SQL Server service...' -ForegroundColor Yellow
-Restart-Service -Name $SqlInstance -Force
-Start-Sleep -Seconds 5
-Write-Host '  SQL Server restarted.' -ForegroundColor Green
+Write-Host '[4/5] Restarting SQL Server in single-user mode...' -ForegroundColor Yellow
+Stop-Service -Name $SqlInstance -Force
+Start-Sleep -Seconds 3
+
+# Start in single-user mode (first connection gets sysadmin)
+$sqlBin = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL16.MSSQLSERVER\Setup').SQLBinRoot
+$sqlServr = Join-Path $sqlBin 'sqlservr.exe'
+$proc = Start-Process -FilePath $sqlServr -ArgumentList "-m -s $SqlInstance" -PassThru -WindowStyle Hidden
+Start-Sleep -Seconds 10
+Write-Host '  SQL Server started in single-user mode.' -ForegroundColor Green
 
 # ----------------------------------------------------------
 # 5. Create SQL login for Parts Unlimited
@@ -84,8 +93,18 @@ END
 ALTER SERVER ROLE [dbcreator] ADD MEMBER [$SqlUser];
 "@
 
-Invoke-Sqlcmd -Query $createLoginSql -ServerInstance '.'
+# Use sqlcmd.exe directly (avoids SQLPS module connection pooling issues in single-user mode)
+sqlcmd -E -S "." -Q $createLoginSql
+if ($LASTEXITCODE -ne 0) { throw 'Failed to create SQL login.' }
 Write-Host "  SQL login '${SqlUser}' created (dbcreator role granted)." -ForegroundColor Green
+
+# Restart SQL Server normally
+Write-Host '  Restarting SQL Server in normal mode...' -ForegroundColor Yellow
+Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 3
+Start-Service -Name $SqlInstance
+Start-Sleep -Seconds 5
+Write-Host '  SQL Server restarted.' -ForegroundColor Green
 
 Write-Host ''
 Write-Host '=== SQL Server Setup Complete ===' -ForegroundColor Cyan

@@ -62,12 +62,20 @@ if (-not $existingRule) {
 }
 
 # ----------------------------------------------------------
-# 4. SQL Server を再起動して変更を反映
+# 4. SQL Server をシングルユーザーモードで再起動して変更を反映
+#    Azure SQL VM イメージでは SYSTEM に sysadmin 権限がないため、
+#    シングルユーザーモードで起動してログインを作成
 # ----------------------------------------------------------
-Write-Host '[4/5] SQL Server サービスを再起動...' -ForegroundColor Yellow
-Restart-Service -Name $SqlInstance -Force
-Start-Sleep -Seconds 5
-Write-Host '  SQL Server を再起動しました。' -ForegroundColor Green
+Write-Host '[4/5] SQL Server をシングルユーザーモードで再起動...' -ForegroundColor Yellow
+Stop-Service -Name $SqlInstance -Force
+Start-Sleep -Seconds 3
+
+# シングルユーザーモードで起動 (最初の接続が sysadmin 権限を取得)
+$sqlBin = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL16.MSSQLSERVER\Setup').SQLBinRoot
+$sqlServr = Join-Path $sqlBin 'sqlservr.exe'
+$proc = Start-Process -FilePath $sqlServr -ArgumentList "-m -s $SqlInstance" -PassThru -WindowStyle Hidden
+Start-Sleep -Seconds 10
+Write-Host '  シングルユーザーモードで起動しました。' -ForegroundColor Green
 
 # ----------------------------------------------------------
 # 5. Parts Unlimited 用 SQL ログインを作成
@@ -84,8 +92,18 @@ END
 ALTER SERVER ROLE [dbcreator] ADD MEMBER [$SqlUser];
 "@
 
-Invoke-Sqlcmd -Query $createLoginSql -ServerInstance '.'
+# sqlcmd.exe を直接使用 (シングルユーザーモードでの SQLPS 接続プール問題を回避)
+sqlcmd -E -S "." -Q $createLoginSql
+if ($LASTEXITCODE -ne 0) { throw 'SQL ログインの作成に失敗しました。' }
 Write-Host "  SQL ログイン '${SqlUser}' を作成しました (dbcreator ロール付与)。" -ForegroundColor Green
+
+# SQL Server を通常モードで再起動
+Write-Host '  SQL Server を通常モードで再起動...' -ForegroundColor Yellow
+Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 3
+Start-Service -Name $SqlInstance
+Start-Sleep -Seconds 5
+Write-Host '  SQL Server を再起動しました。' -ForegroundColor Green
 
 Write-Host ''
 Write-Host '=== SQL Server セットアップ完了 ===' -ForegroundColor Cyan

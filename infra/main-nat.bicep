@@ -469,7 +469,7 @@ resource webVm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   }
 }
 
-// IIS + ASP.NET 4.5 インストール
+// IIS + ASP.NET 4.8 インストール
 resource webIisExtension 'Microsoft.Compute/virtualMachines/extensions@2024-07-01' = {
   parent: webVm
   name: 'IISSetup'

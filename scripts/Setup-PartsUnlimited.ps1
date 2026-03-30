@@ -1,7 +1,7 @@
 # ============================================================
 # Setup-PartsUnlimited.ps1
 # APP01 (IIS/Web) に対して実行するセットアップスクリプト
-# Parts Unlimited (ASP.NET 4.5 MVC) をビルド・デプロイします
+# Parts Unlimited (ASP.NET 4.8 MVC) をビルド・デプロイします
 # ============================================================
 # 前提条件:
 #   - main-nat.bicep でデプロイ済み (GitHub アクセスにインターネット送信が必要)
@@ -95,25 +95,6 @@ if (-not $msbuildPath) {
     Write-Host "  Build Tools は既にインストールされています: $msbuildPath" -ForegroundColor Green
 }
 
-# .NET Framework 4.5.1 Targeting Pack の確認 (ビルドに必要、既定では含まれない)
-$frameworkOverride = ''
-$refAsmBase = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework"
-if (-not (Test-Path "$refAsmBase\v4.5.1")) {
-    # 利用可能な最新の Targeting Pack を FrameworkPathOverride として使用
-    if (Test-Path $refAsmBase) {
-        $available = Get-ChildItem $refAsmBase -Directory | Sort-Object Name -Descending | Select-Object -First 1
-        if ($available) {
-            $frameworkOverride = $available.FullName
-            Write-Host "  .NET 4.5.1 Targeting Pack が見つかりません。$($available.Name) の参照アセンブリを使用します。" -ForegroundColor Yellow
-        }
-    }
-    if (-not $frameworkOverride) {
-        throw '.NET Framework の参照アセンブリが見つかりません。Build Tools と .NET Targeting Pack をインストールしてください。'
-    }
-} else {
-    Write-Host '  .NET 4.5.1 Targeting Pack が見つかりました。' -ForegroundColor Green
-}
-
 # ----------------------------------------------------------
 # 3. NuGet.exe のダウンロード
 # ----------------------------------------------------------
@@ -145,6 +126,17 @@ if (-not (Test-Path $srcRoot)) {
 }
 Write-Host "  ソースコード展開完了: $srcRoot" -ForegroundColor Green
 
+# .csproj のターゲットを .NET 4.5.1 から .NET 4.8 に変更
+# Windows Server 2022 には .NET 4.8 が標準搭載されていますが、
+# 4.5.1 Targeting Pack は含まれません。アプリは .NET 4.8 で完全に動作します (上位互換)。
+$csprojPath = Join-Path $srcRoot 'src\PartsUnlimitedWebsite\PartsUnlimitedWebsite.csproj'
+$csprojContent = Get-Content $csprojPath -Raw
+if ($csprojContent -match 'v4\.5\.1') {
+    $csprojContent = $csprojContent -replace '<TargetFrameworkVersion>v4\.5\.1</TargetFrameworkVersion>', '<TargetFrameworkVersion>v4.8</TargetFrameworkVersion>'
+    Set-Content -Path $csprojPath -Value $csprojContent -Encoding UTF8
+    Write-Host '  プロジェクトのターゲットを .NET 4.5.1 から .NET 4.8 に変更しました。' -ForegroundColor Yellow
+}
+
 # ----------------------------------------------------------
 # 5. NuGet パッケージ復元 & ビルド
 # ----------------------------------------------------------
@@ -161,20 +153,12 @@ if ($LASTEXITCODE -ne 0) { throw 'NuGet restore に失敗しました。' }
 
 # MSBuild — Web サイトプロジェクトのみビルド (テスト・モデリングプロジェクトはスキップ)
 Write-Host '  ビルド中...' -ForegroundColor Yellow
-$msbuildArgs = @(
-    $webProjectPath,
-    '/p:Configuration=Release',
-    '/p:DeployOnBuild=true',
-    '/p:PublishProfile=FolderProfile',
-    "/p:publishUrl=$publishDir",
-    '/p:WebPublishMethod=FileSystem',
-    '/p:DeployDefaultTarget=WebPublish',
-    '/verbosity:minimal'
-)
-if ($frameworkOverride) {
-    $msbuildArgs += "/p:FrameworkPathOverride=$frameworkOverride"
-}
-& $msbuildPath @msbuildArgs
+& $msbuildPath $webProjectPath `
+    /p:Configuration=Release `
+    /p:DeployOnBuild=true `
+    /p:publishUrl=$publishDir `
+    /p:WebPublishMethod=FileSystem `
+    /verbosity:minimal
 if ($LASTEXITCODE -ne 0) { throw 'ビルドに失敗しました。' }
 Write-Host '  ビルド成功。' -ForegroundColor Green
 

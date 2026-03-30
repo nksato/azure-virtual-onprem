@@ -1,7 +1,7 @@
 # ============================================================
 # Setup-PartsUnlimited.ps1
 # Setup script to run on APP01 (IIS/Web)
-# Builds and deploys Parts Unlimited (ASP.NET 4.5 MVC)
+# Builds and deploys Parts Unlimited (ASP.NET 4.8 MVC)
 # ============================================================
 # Prerequisites:
 #   - Deployed with main-nat.bicep (internet outbound required for GitHub access)
@@ -95,25 +95,6 @@ if (-not $msbuildPath) {
     Write-Host "  Build Tools already installed: $msbuildPath" -ForegroundColor Green
 }
 
-# Check .NET Framework 4.5.1 Targeting Pack (required for build, not included by default)
-$frameworkOverride = ''
-$refAsmBase = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework"
-if (-not (Test-Path "$refAsmBase\v4.5.1")) {
-    # Use the highest available targeting pack as FrameworkPathOverride
-    if (Test-Path $refAsmBase) {
-        $available = Get-ChildItem $refAsmBase -Directory | Sort-Object Name -Descending | Select-Object -First 1
-        if ($available) {
-            $frameworkOverride = $available.FullName
-            Write-Host "  .NET 4.5.1 Targeting Pack not found. Using $($available.Name) reference assemblies." -ForegroundColor Yellow
-        }
-    }
-    if (-not $frameworkOverride) {
-        throw '.NET Framework reference assemblies not found. Install Build Tools with a .NET targeting pack.'
-    }
-} else {
-    Write-Host '  .NET 4.5.1 Targeting Pack found.' -ForegroundColor Green
-}
-
 # ----------------------------------------------------------
 # 3. Download NuGet.exe
 # ----------------------------------------------------------
@@ -145,6 +126,17 @@ if (-not (Test-Path $srcRoot)) {
 }
 Write-Host "  Source code extracted: $srcRoot" -ForegroundColor Green
 
+# Retarget .csproj from .NET 4.5.1 to .NET 4.8
+# Windows Server 2022 ships with .NET 4.8 but does not have 4.5.1 Targeting Pack.
+# The app is fully compatible with .NET 4.8 (backward compatible).
+$csprojPath = Join-Path $srcRoot 'src\PartsUnlimitedWebsite\PartsUnlimitedWebsite.csproj'
+$csprojContent = Get-Content $csprojPath -Raw
+if ($csprojContent -match 'v4\.5\.1') {
+    $csprojContent = $csprojContent -replace '<TargetFrameworkVersion>v4\.5\.1</TargetFrameworkVersion>', '<TargetFrameworkVersion>v4.8</TargetFrameworkVersion>'
+    Set-Content -Path $csprojPath -Value $csprojContent -Encoding UTF8
+    Write-Host '  Retargeted project from .NET 4.5.1 to .NET 4.8.' -ForegroundColor Yellow
+}
+
 # ----------------------------------------------------------
 # 5. NuGet package restore & build
 # ----------------------------------------------------------
@@ -161,20 +153,12 @@ if ($LASTEXITCODE -ne 0) { throw 'NuGet restore failed.' }
 
 # MSBuild — build only the website project (skip tests and modeling projects)
 Write-Host '  Building...' -ForegroundColor Yellow
-$msbuildArgs = @(
-    $webProjectPath,
-    '/p:Configuration=Release',
-    '/p:DeployOnBuild=true',
-    '/p:PublishProfile=FolderProfile',
-    "/p:publishUrl=$publishDir",
-    '/p:WebPublishMethod=FileSystem',
-    '/p:DeployDefaultTarget=WebPublish',
-    '/verbosity:minimal'
-)
-if ($frameworkOverride) {
-    $msbuildArgs += "/p:FrameworkPathOverride=$frameworkOverride"
-}
-& $msbuildPath @msbuildArgs
+& $msbuildPath $webProjectPath `
+    /p:Configuration=Release `
+    /p:DeployOnBuild=true `
+    /p:publishUrl=$publishDir `
+    /p:WebPublishMethod=FileSystem `
+    /verbosity:minimal
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 Write-Host '  Build successful.' -ForegroundColor Green
 

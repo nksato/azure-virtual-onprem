@@ -175,7 +175,16 @@ if (-not (Test-Path "$publishDir\Web.config")) {
     }
 }
 
-# さらにフォールバック: bin ディレクトリ直下でWeb.configがある場所を探す
+# フォールバック: PackageTmp ディレクトリ (PublishProfile なしの DeployOnBuild が作成)
+if (-not (Test-Path "$publishDir\Web.config")) {
+    $packageTmp = Join-Path $srcRoot 'src\PartsUnlimitedWebsite\obj\Release\Package\PackageTmp'
+    if (Test-Path "$packageTmp\Web.config") {
+        $publishDir = $packageTmp
+        Write-Host "  発行ディレクトリ (PackageTmp): $publishDir" -ForegroundColor Yellow
+    }
+}
+
+# さらにフォールバック: プロジェクトディレクトリ直下でWeb.configがある場所を探す
 if (-not (Test-Path "$publishDir\Web.config")) {
     $webProject = Join-Path $srcRoot 'src\PartsUnlimitedWebsite'
     if (Test-Path "$webProject\Web.config") {

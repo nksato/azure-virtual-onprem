@@ -175,7 +175,16 @@ if (-not (Test-Path "$publishDir\Web.config")) {
     }
 }
 
-# Further fallback: look for Web.config directly under bin directory
+# Fallback: PackageTmp directory (created by DeployOnBuild without PublishProfile)
+if (-not (Test-Path "$publishDir\Web.config")) {
+    $packageTmp = Join-Path $srcRoot 'src\PartsUnlimitedWebsite\obj\Release\Package\PackageTmp'
+    if (Test-Path "$packageTmp\Web.config") {
+        $publishDir = $packageTmp
+        Write-Host "  Publish directory (PackageTmp): $publishDir" -ForegroundColor Yellow
+    }
+}
+
+# Further fallback: look for Web.config directly under project directory
 if (-not (Test-Path "$publishDir\Web.config")) {
     $webProject = Join-Path $srcRoot 'src\PartsUnlimitedWebsite'
     if (Test-Path "$webProject\Web.config") {

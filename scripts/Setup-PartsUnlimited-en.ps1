@@ -256,6 +256,18 @@ Write-Host "  IIS site '$SiteName' created and started." -ForegroundColor Green
 # ----------------------------------------------------------
 # Complete
 # ----------------------------------------------------------
+
+# Verify SQL Server connectivity
+Write-Host '' -ForegroundColor White
+Write-Host 'SQL Server connectivity check:' -ForegroundColor White
+$tcp = Test-NetConnection -ComputerName $SqlServer -Port 1433 -WarningAction SilentlyContinue
+if ($tcp.TcpTestSucceeded) {
+    Write-Host "  TCP 1433 to ${SqlServer}: OK" -ForegroundColor Green
+} else {
+    Write-Host "  TCP 1433 to ${SqlServer}: FAILED" -ForegroundColor Red
+    Write-Host '  Check: Setup-SqlServer-en.ps1 executed on DB01? Firewall rule? SQL Service running?' -ForegroundColor Red
+}
+
 Write-Host ''
 Write-Host '=== Parts Unlimited Setup Complete ===' -ForegroundColor Cyan
 Write-Host ''

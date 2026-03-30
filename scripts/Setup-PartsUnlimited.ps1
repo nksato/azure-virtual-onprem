@@ -256,6 +256,18 @@ Write-Host "  IIS サイト '$SiteName' を作成・開始しました。" -Fore
 # ----------------------------------------------------------
 # 完了
 # ----------------------------------------------------------
+
+# SQL Server への接続確認
+Write-Host '' -ForegroundColor White
+Write-Host 'SQL Server 接続確認:' -ForegroundColor White
+$tcp = Test-NetConnection -ComputerName $SqlServer -Port 1433 -WarningAction SilentlyContinue
+if ($tcp.TcpTestSucceeded) {
+    Write-Host "  TCP 1433 to ${SqlServer}: OK" -ForegroundColor Green
+} else {
+    Write-Host "  TCP 1433 to ${SqlServer}: 失敗" -ForegroundColor Red
+    Write-Host '  確認: DB01 で Setup-SqlServer.ps1 を実行済みか、ファイアウォール、SQL Server サービスの状態を確認してください。' -ForegroundColor Red
+}
+
 Write-Host ''
 Write-Host '=== Parts Unlimited セットアップ完了 ===' -ForegroundColor Cyan
 Write-Host ''

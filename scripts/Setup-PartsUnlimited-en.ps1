@@ -158,7 +158,7 @@ Write-Host '  Building...' -ForegroundColor Yellow
     /p:DeployOnBuild=true `
     /p:publishUrl=$publishDir `
     /p:WebPublishMethod=FileSystem `
-    /verbosity:minimal
+    /verbosity:quiet
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 Write-Host '  Build successful.' -ForegroundColor Green
 

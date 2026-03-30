@@ -1,5 +1,5 @@
 # ============================================================
-# Setup-SqlServer.ps1
+# Setup-SqlServer-en.ps1
 # Setup script to run on DB01 (SQL Server)
 # - Enable SQL Server authentication
 # - Enable TCP/IP protocol
@@ -7,7 +7,7 @@
 # - Create login for Parts Unlimited
 # ============================================================
 # Usage: Connect to DB01 via Bastion RDP and run in admin PowerShell
-#   .\Setup-SqlServer.ps1 -SqlPassword 'P@ssw0rd1234'
+#   .\Setup-SqlServer-en.ps1 -SqlPassword 'P@ssw0rd1234'
 # ============================================================
 
 param(
@@ -72,7 +72,7 @@ Stop-Service -Name $SqlInstance -Force
 Start-Sleep -Seconds 3
 
 # Start in single-user mode (first connection gets sysadmin)
-$sqlBin = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL16.MSSQLSERVER\Setup').SQLBinRoot
+$sqlBin = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL16.${SqlInstance}\Setup").SQLBinRoot
 $sqlServr = Join-Path $sqlBin 'sqlservr.exe'
 $proc = Start-Process -FilePath $sqlServr -ArgumentList "-m -s $SqlInstance" -PassThru -WindowStyle Hidden
 Start-Sleep -Seconds 10
@@ -108,4 +108,4 @@ Write-Host '  SQL Server restarted.' -ForegroundColor Green
 
 Write-Host ''
 Write-Host '=== SQL Server Setup Complete ===' -ForegroundColor Cyan
-Write-Host "接続文字列: Server=10.0.1.5;Database=PartsUnlimitedWebsite;User Id=${SqlUser};Password=<password>;TrustServerCertificate=True" -ForegroundColor White
+Write-Host "Connection string: Server=10.0.1.5;Database=PartsUnlimitedWebsite;User Id=${SqlUser};Password=<password>;TrustServerCertificate=True" -ForegroundColor White

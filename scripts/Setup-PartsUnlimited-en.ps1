@@ -1,13 +1,13 @@
 # ============================================================
-# Setup-PartsUnlimited.ps1
+# Setup-PartsUnlimited-en.ps1
 # Setup script to run on APP01 (IIS/Web)
 # Builds and deploys Parts Unlimited (ASP.NET 4.8 MVC)
 # ============================================================
 # Prerequisites:
 #   - Deployed with main-nat.bicep (internet outbound required for GitHub access)
-#   - Setup-SqlServer.ps1 already executed on DB01
+#   - Setup-SqlServer-en.ps1 already executed on DB01
 # Usage: Connect to APP01 via Bastion RDP and run in admin PowerShell
-#   .\Setup-PartsUnlimited.ps1 -SqlPassword 'P@ssw0rd1234'
+#   .\Setup-PartsUnlimited-en.ps1 -SqlPassword 'P@ssw0rd1234'
 # ============================================================
 
 param(
@@ -142,7 +142,6 @@ if ($csprojContent -match 'v4\.5\.1') {
 # ----------------------------------------------------------
 Write-Host '[5/7] NuGet package restore & build...' -ForegroundColor Yellow
 
-$solutionPath = Join-Path $srcRoot 'PartsUnlimited.sln'
 $publishDir = "$WorkDir\publish"
 $webProjectPath = Join-Path $srcRoot 'src\PartsUnlimitedWebsite\PartsUnlimitedWebsite.csproj'
 

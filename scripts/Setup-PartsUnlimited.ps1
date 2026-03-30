@@ -142,7 +142,6 @@ if ($csprojContent -match 'v4\.5\.1') {
 # ----------------------------------------------------------
 Write-Host '[5/7] NuGet パッケージ復元 & ビルド...' -ForegroundColor Yellow
 
-$solutionPath = Join-Path $srcRoot 'PartsUnlimited.sln'
 $publishDir = "$WorkDir\publish"
 $webProjectPath = Join-Path $srcRoot 'src\PartsUnlimitedWebsite\PartsUnlimitedWebsite.csproj'
 

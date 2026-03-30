@@ -71,7 +71,7 @@ Stop-Service -Name $SqlInstance -Force
 Start-Sleep -Seconds 3
 
 # シングルユーザーモードで起動 (最初の接続が sysadmin 権限を取得)
-$sqlBin = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL16.MSSQLSERVER\Setup').SQLBinRoot
+$sqlBin = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL16.${SqlInstance}\Setup").SQLBinRoot
 $sqlServr = Join-Path $sqlBin 'sqlservr.exe'
 $proc = Start-Process -FilePath $sqlServr -ArgumentList "-m -s $SqlInstance" -PassThru -WindowStyle Hidden
 Start-Sleep -Seconds 10

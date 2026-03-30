@@ -218,6 +218,16 @@ az deployment group show --resource-group rg-onpre --name main \
 
 デプロイ後の動作確認手順は [docs/verification-guide.md](docs/verification-guide.md) を参照してください。
 
+## リソースの削除
+
+ラボ環境が不要になったら、リソースグループごと削除してください。
+
+```bash
+az group delete --name rg-onpre --yes --no-wait
+```
+
+> **注意**: VPN Gateway の削除には 15〜30 分程度かかります。`--no-wait` を付けるとバックグラウンドで削除が進行し、コマンドはすぐに返ります。
+
 ## Parts Unlimited Web アプリケーション
 
 疑似オンプレミス環境に Parts Unlimited (ASP.NET 4.5 MVC + SQL Server) をデプロイできます。

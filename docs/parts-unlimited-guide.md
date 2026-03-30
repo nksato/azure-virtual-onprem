@@ -24,29 +24,26 @@ ASP.NET 4.5 MVC + Entity Framework 6 + SQL Server で構成されており、
 
 ## セットアップ手順
 
-### 1. スクリプトを VM に転送
-
-Bastion RDP セッション内でスクリプトを実行するため、事前に VM へ転送します。
-
-**方法 A: クリップボード経由**
-
-1. ローカル PC でスクリプトの内容をコピー
-2. Bastion RDP セッション内でメモ帳を開き、貼り付けて保存
-
-**方法 B: Storage Account 経由 (スクリプトが長い場合)**
-
-1. Azure Storage Account に Blob としてアップロード
-2. VM 内のブラウザ (IE/Edge) からダウンロード
-
-### 2. DB01 — SQL Server セットアップ
+### 1. DB01 — SQL Server セットアップ
 
 Bastion → DB01 に RDP 接続し、管理者 PowerShell を開きます。
 
-```powershell
-# スクリプトを保存したディレクトリに移動
-cd C:\scripts
+#### スクリプトのダウンロード
 
-# 実行ポリシーを一時的に変更
+```powershell
+# <GitHubユーザー名> を自身のリポジトリに合わせて変更してください
+$repo = 'https://raw.githubusercontent.com/<GitHubユーザー名>/azure-virtual-onprem/main/scripts'
+New-Item -Path C:\scripts -ItemType Directory -Force
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Invoke-WebRequest -Uri "$repo/Setup-SqlServer.ps1" -OutFile 'C:\scripts\Setup-SqlServer.ps1' -UseBasicParsing
+```
+
+> インターネットにアクセスできない環境 (`main-closed.bicep`) の場合は、Bastion RDP のクリップボードにスクリプト内容を貼り付けてファイル保存するか、Storage Account 経由で転送してください。Bastion Basic SKU のブラウザ RDP ではテキストのクリップボードのみ利用可能です。
+
+#### スクリプトの実行
+
+```powershell
+cd C:\scripts
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 # SQL Server をセットアップ (パスワードは任意の値に変更してください)
@@ -67,13 +64,26 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 > **SQL 認証を使用する理由**: 一般的なオンプレミス環境では、IIS アプリケーション プールをドメイン サービス アカウントで実行し、Windows 認証 (`Integrated Security=True`) で SQL Server に接続するのが標準的です。本ラボでは Parts Unlimited のサンプル アプリが AD 統合を前提としない簡易構成のため、SQL Server 認証 (混合モード) を使用しています。
 
-### 3. APP01 — Parts Unlimited デプロイ
+### 2. APP01 — Parts Unlimited デプロイ
 
 Bastion → APP01 に RDP 接続し、管理者 PowerShell を開きます。
 
+#### スクリプトのダウンロード
+
+```powershell
+# <GitHubユーザー名> を自身のリポジトリに合わせて変更してください
+$repo = 'https://raw.githubusercontent.com/<GitHubユーザー名>/azure-virtual-onprem/main/scripts'
+New-Item -Path C:\scripts -ItemType Directory -Force
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Invoke-WebRequest -Uri "$repo/Setup-PartsUnlimited.ps1" -OutFile 'C:\scripts\Setup-PartsUnlimited.ps1' -UseBasicParsing
+```
+
+> インターネットにアクセスできない環境 (`main-closed.bicep`) の場合は、Bastion RDP のクリップボードにスクリプト内容を貼り付けてファイル保存するか、Storage Account 経由で転送してください。Bastion Basic SKU のブラウザ RDP ではテキストのクリップボードのみ利用可能です。
+
+#### スクリプトの実行
+
 ```powershell
 cd C:\scripts
-
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 .\Setup-PartsUnlimited.ps1 -SqlPassword '<Setup-SqlServer.ps1 と同じパスワード>'
@@ -82,15 +92,16 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 #### 実行内容の詳細
 
 1. **作業ディレクトリ作成**: `C:\PartsUnlimited`
-2. **VS Build Tools インストール**: Web ビルドワークロード (MSBuild + WebApplication targets)
+2. **VS Build Tools インストール**: [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) から自動ダウンロードし、Web ビルドワークロード (MSBuild + WebApplication targets) をインストール
    - 初回は約 10〜15 分かかります
+   - Build Tools は [Visual Studio ライセンス条項](https://visualstudio.microsoft.com/license-terms/vs2022-ga-diagnosticbuildtools/) に基づき、サブスクリプション不要で無償利用可能です
 3. **NuGet.exe ダウンロード**: パッケージ復元用
 4. **ソースコード取得**: GitHub から ZIP ダウンロード → 展開
 5. **ビルド**: NuGet restore → MSBuild Release ビルド
 6. **接続文字列書き換え**: `Web.config` の `DefaultConnectionString` を DB01 向けに変更
 7. **IIS デプロイ**: アプリケーションプール作成 → サイト作成 → 開始
 
-### 4. 動作確認
+### 3. 動作確認
 
 #### ブラウザでアクセス
 

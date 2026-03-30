@@ -214,6 +214,10 @@ az deployment group show --resource-group rg-onpre --name main \
 - [Default outbound access in Azure](https://learn.microsoft.com/azure/virtual-network/ip-services/default-outbound-access)
 - [Azure NAT Gateway](https://learn.microsoft.com/azure/nat-gateway/nat-overview)
 
+## 動作確認
+
+デプロイ後の動作確認手順は [docs/verification-guide.md](docs/verification-guide.md) を参照してください。
+
 ## Parts Unlimited Web アプリケーション
 
 疑似オンプレミス環境に Parts Unlimited (ASP.NET 4.5 MVC + SQL Server) をデプロイできます。

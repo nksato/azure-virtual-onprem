@@ -84,7 +84,7 @@ END
 ALTER SERVER ROLE [dbcreator] ADD MEMBER [$SqlUser];
 "@
 
-Invoke-Sqlcmd -Query $createLoginSql -ServerInstance '.' -TrustServerCertificate
+Invoke-Sqlcmd -Query $createLoginSql -ServerInstance '.'
 Write-Host "  SQL login '${SqlUser}' created (dbcreator role granted)." -ForegroundColor Green
 
 Write-Host ''

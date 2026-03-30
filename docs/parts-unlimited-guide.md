@@ -100,6 +100,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 3. **NuGet.exe ダウンロード**: パッケージ復元用
 4. **ソースコード取得**: GitHub から ZIP ダウンロード → 展開
 5. **ビルド**: NuGet restore → MSBuild Release ビルド
+
+> **注意 (NuGet Audit 警告)**: NuGet 6.8 以降では、パッケージ復元時に既知の脆弱性を検出する **NuGet Audit** 機能が既定で有効になっています。Parts Unlimited はアーカイブ済みのサンプル アプリであり、古いバージョンのパッケージを使用しているため、復元時に `NU1901`〜`NU1904` 等の脆弱性警告が多数表示されることがあります。これらはラボ環境での動作には影響しませんが、本番利用を意図したものではない点にご注意ください。
+
 6. **接続文字列書き換え**: `Web.config` の `DefaultConnectionString` を DB01 向けに変更
 7. **IIS デプロイ**: アプリケーションプール作成 → サイト作成 → 開始
 

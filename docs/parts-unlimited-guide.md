@@ -8,7 +8,7 @@ ASP.NET 4.5 MVC + Entity Framework 6 + SQL Server で構成されており、
 
 | 項目 | 内容 |
 |---|---|
-| **リポジトリ** | [microsoft/PartsUnlimitedE2E](https://github.com/microsoft/PartsUnlimitedE2E) |
+| **リポジトリ** | [microsoft/PartsUnlimitedE2E](https://github.com/microsoft/PartsUnlimitedE2E) (パブリック アーカイブ) |
 | **フレームワーク** | ASP.NET 4.5.1 MVC 5 |
 | **ORM** | Entity Framework 6.1.3 (Code First) |
 | **データベース** | SQL Server (EF が自動作成) |

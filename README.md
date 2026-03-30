@@ -43,7 +43,7 @@ architecture-beta
 | **OnPrem-VNet** (10.0.0.0/16) | 疑似オンプレミス環境全体 |
 | **ServerSubnet** (10.0.1.0/24) | DC01, DB01, APP01 の3台を配置 |
 | **GatewaySubnet** (10.0.255.0/27) | VPN Gateway (VpnGw1 / RouteBased) |
-| **BastionSubnet** (10.0.254.0/26) | Azure Bastion による閉域管理アクセス |
+| **AzureBastionSubnet** (10.0.254.0/26) | Azure Bastion による閉域管理アクセス |
 | **NSG** | VNet 内通信のみ許可、インターネット Inbound 拒否 (テンプレートにより Outbound ルールが異なる) |
 
 ## サーバ構成
@@ -85,6 +85,8 @@ NAT Gateway: なし        NAT Gateway: なし        NAT Gateway: あり
 - **管理アクセス**: Azure Bastion 経由で RDP 接続
 - **DNS**: VNet の DNS サーバとして DC01 (10.0.1.4) を指定
 - **VPN**: S2S (Site-to-Site) VPN で Azure 側環境と接続
+
+> **VPN Gateway SKU に関する注意**: 本テンプレートではコスト優先で **`VpnGw1`** (非 AZ SKU) を使用しています。Azure Portal で VPN Gateway の設定を開くと「*VPN Gateway non-AZ SKUs are getting deprecated*」という警告が表示されますが、**ラボ用途では問題ありません**。Portal 上で VPN Gateway の構成を変更すると自動的に `VpnGw1AZ` にアップグレードされます。詳細は [VPN Gateway SKU の廃止に関するドキュメント](https://learn.microsoft.com/azure/vpn-gateway/vpn-gateway-about-skus-legacy) を参照してください。
 
 ## デプロイ順序と依存関係
 
@@ -149,8 +151,53 @@ az deployment group create \
 | `adminPassword` | **必須** | - | 管理者パスワード |
 | `domainName` | - | `lab.local` | AD ドメイン名 |
 | `vpnSharedKey` | **必須** | - | VPN 共有キー |
-| `remoteGatewayIp` | - | (空) | Azure 側 VPN Gateway のパブリック IP |
-| `remoteAddressPrefix` | - | `10.100.0.0/16` | Azure 側アドレス空間 |
+| `remoteGatewayIp` | - | (空) | 接続先 VPN Gateway のパブリック IP (空の場合 S2S 接続はスキップ) |
+| `remoteAddressPrefix` | - | `10.100.0.0/16` | 接続先のアドレス空間 |
+
+### VPN 接続先の設定方法
+
+初回デプロイ時は `remoteGatewayIp` が空（既定値）のため、VPN Gateway 本体のみ作成され、S2S 接続リソースはスキップされます。
+接続先が決まったら、**同じコマンドにパラメータを追加して再デプロイ**するだけで S2S 接続が確立されます（既存リソースはそのまま維持されます）。
+
+```bash
+az deployment group create \
+  --resource-group rg-onpre \
+  --template-file infra/main.bicep \
+  --parameters \
+    adminPassword='<パスワード>' \
+    vpnSharedKey='<共有キー>' \
+    remoteGatewayIp='<接続先VPN GatewayのパブリックIP>' \
+    remoteAddressPrefix='<接続先のアドレス空間>'
+```
+
+| パラメータ | 設定内容 | 例 |
+|---|---|---|
+| `remoteGatewayIp` | 接続先 VPN Gateway の**パブリック IP** | `20.xxx.xxx.xxx` |
+| `remoteAddressPrefix` | 接続先の**アドレス空間** (CIDR) | `10.100.0.0/16` |
+| `vpnSharedKey` | 両側で一致させる**事前共有キー** | 初回デプロイ時と同じ値 |
+
+`remoteGatewayIp` を指定すると以下の 2 リソースが追加作成されます:
+
+- **Local Network Gateway** (`Azure-LocalGw`) — 接続先の IP とアドレス空間を定義
+- **S2S VPN 接続** (`OnPrem-to-Azure-S2S`) — IKEv2 / IPsec で接続
+
+#### 接続先 (対向側) での設定
+
+対向側の VPN デバイス / ゲートウェイにも以下を設定してください:
+
+| 設定項目 | 値 |
+|---|---|
+| 疑似オンプレミス側パブリック IP | `vpnGatewayPublicIp` 出力値 (※) |
+| 疑似オンプレミス側アドレス空間 | `10.0.0.0/16` |
+| 事前共有キー | デプロイ時の `vpnSharedKey` と同じ値 |
+| プロトコル | IKEv2 / IPsec |
+
+※ 疑似オンプレミス側 VPN Gateway のパブリック IP はデプロイ出力から確認できます:
+
+```bash
+az deployment group show --resource-group rg-onpre --name main \
+  --query properties.outputs.vpnGatewayPublicIp.value -o tsv
+```
 
 ### 送信インターネット アクセスに関する注意
 
@@ -169,72 +216,13 @@ az deployment group create \
 
 ## Parts Unlimited Web アプリケーション
 
-疑似オンプレ環境に Parts Unlimited (ASP.NET 4.5 MVC + SQL Server) をデプロイできます。
-Parts Unlimited は Microsoft 公式のサンプル eCommerce サイトで、カテゴリ別商品一覧・ショッピングカート・注文管理などを備えています。
+疑似オンプレミス環境に Parts Unlimited (ASP.NET 4.5 MVC + SQL Server) をデプロイできます。
+ソースコードは [microsoft/PartsUnlimitedE2E](https://github.com/microsoft/PartsUnlimitedE2E) (パブリック アーカイブ / 読み取り専用) から取得しています。
+詳細なセットアップ手順は [docs/parts-unlimited-guide.md](docs/parts-unlimited-guide.md) を参照してください。
 
-> **リポジトリについて**: ソースコードは [microsoft/PartsUnlimitedE2E](https://github.com/microsoft/PartsUnlimitedE2E) から取得しています。このリポジトリは **パブリック アーカイブ** (読み取り専用) であり、今後の更新はありません。ラボ用途のサンプルとしては安定したスナップショットとして利用できます。
+> **前提**: インターネットへの送信アクセスが必要なため、**`main.bicep`** または **`main-nat.bicep`** でデプロイしてください。
 
-> **前提**: インターネットへの送信アクセスが必要なため、**`main-nat.bicep`** でデプロイしてください。
-
-### セットアップ手順
-
-#### Step 1: DB01 — SQL Server の構成
-
-Bastion 経由で **DB01** に RDP 接続し、管理者 PowerShell で実行:
-
-```powershell
-.\Setup-SqlServer.ps1 -SqlPassword 'P@ssw0rd1234'
-```
-
-実行内容:
-- SQL Server 認証モードを混合モードに変更
-- TCP/IP プロトコルの有効化
-- ファイアウォール ポート 1433 の開放
-- Parts Unlimited 用 SQL ログイン (`puadmin`) の作成
-
-#### Step 2: APP01 — Parts Unlimited のビルド・デプロイ
-
-Bastion 経由で **APP01** に RDP 接続し、管理者 PowerShell で実行:
-
-```powershell
-.\Setup-PartsUnlimited.ps1 -SqlPassword 'P@ssw0rd1234'
-```
-
-実行内容:
-- Visual Studio Build Tools 2022 (Web ワークロード) のインストール
-- ソースコードのダウンロード ([microsoft/PartsUnlimitedE2E](https://github.com/microsoft/PartsUnlimitedE2E))
-- NuGet パッケージ復元 & MSBuild ビルド
-- Web.config の接続文字列を DB01 向けに書き換え
-- IIS サイト作成・デプロイ
-
-#### Step 3: 動作確認
-
-| 確認項目 | URL / 方法 |
-|---|---|
-| APP01 ローカル | `http://localhost` |
-| VNet 内 (DC01/DB01 から) | `http://10.0.1.6` |
-| 管理者ログイン | `Administrator@test.com` / `YouShouldChangeThisPassword1!` |
-
-### スクリプトのパラメータ
-
-#### Setup-SqlServer.ps1
-
-| パラメータ | 必須 | 既定値 | 説明 |
-|---|---|---|---|
-| `SqlPassword` | **必須** | - | SQL ログインのパスワード |
-| `SqlUser` | - | `puadmin` | SQL ログイン名 |
-
-#### Setup-PartsUnlimited.ps1
-
-| パラメータ | 必須 | 既定値 | 説明 |
-|---|---|---|---|
-| `SqlPassword` | **必須** | - | SQL ログインのパスワード (Setup-SqlServer.ps1 と同じ) |
-| `SqlUser` | - | `puadmin` | SQL ログイン名 |
-| `SqlServer` | - | `10.0.1.5` | SQL Server の IP アドレス |
-| `SiteName` | - | `PartsUnlimited` | IIS サイト名 |
-| `SitePort` | - | `80` | リッスン ポート |
-
-### ドメイン名 `.local` に関する注意
+## ドメイン名 `.local` に関する注意
 
 既定のドメイン名 `lab.local` は `.local` サフィックスを使用しています。Microsoft の公式ドキュメントでは `.local` の使用は非推奨とされていますが、本環境は **Windows のみ・閉域・一時的なラボ** であるため、影響は限定的と判断し採用しています。
 

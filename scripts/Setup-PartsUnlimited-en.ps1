@@ -67,9 +67,25 @@ if (-not $msbuildPath) {
         throw "Build Tools installation failed (ExitCode: $($process.ExitCode))"
     }
 
-    # Search for MSBuild path again via vswhere
-    $msbuildPath = & $vsWherePath -latest -requires Microsoft.Component.MSBuild `
-        -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+    # Search for MSBuild path again via vswhere (retry up to 30 sec)
+    for ($i = 0; $i -lt 6; $i++) {
+        if (Test-Path $vsWherePath) {
+            $msbuildPath = & $vsWherePath -latest -requires Microsoft.Component.MSBuild `
+                -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+        }
+        if ($msbuildPath) { break }
+        Write-Host '  Waiting for Build Tools registration...' -ForegroundColor Yellow
+        Start-Sleep -Seconds 5
+    }
+
+    # Fallback: search known installation paths directly
+    if (-not $msbuildPath) {
+        $fallbackPaths = @(
+            "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe",
+            "$env:ProgramFiles\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
+        )
+        $msbuildPath = $fallbackPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+    }
 
     if (-not $msbuildPath) {
         throw 'MSBuild not found. Please verify Build Tools installation.'
@@ -77,6 +93,22 @@ if (-not $msbuildPath) {
     Write-Host '  Build Tools installed.' -ForegroundColor Green
 } else {
     Write-Host "  Build Tools already installed: $msbuildPath" -ForegroundColor Green
+}
+
+# Check .NET Framework 4.5.1 Targeting Pack (required for build, not included by default)
+$targetingPackPath = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.1"
+if (-not (Test-Path $targetingPackPath)) {
+    Write-Host '  Installing .NET Framework 4.5.1 Developer Pack...' -ForegroundColor Yellow
+    $devPackPath = "$WorkDir\NDP451-DevPack-KB2861696-x86-x64-AllOS-ENU.exe"
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/?linkid=2204105' -OutFile $devPackPath -UseBasicParsing
+    $process = Start-Process -FilePath $devPackPath -ArgumentList '/quiet', '/norestart' -Wait -PassThru
+    if ($process.ExitCode -notin 0, 3010) {
+        throw ".NET 4.5.1 Developer Pack installation failed (ExitCode: $($process.ExitCode))"
+    }
+    Write-Host '  .NET 4.5.1 Developer Pack installed.' -ForegroundColor Green
+} else {
+    Write-Host '  .NET 4.5.1 Targeting Pack found.' -ForegroundColor Green
 }
 
 # ----------------------------------------------------------
@@ -122,10 +154,11 @@ Write-Host '  Restoring NuGet packages...' -ForegroundColor Yellow
 & $nugetPath restore $solutionPath
 if ($LASTEXITCODE -ne 0) { throw 'NuGet restore failed.' }
 
-# MSBuild
+# MSBuild — build only the website project (skip tests and modeling projects)
 $publishDir = "$WorkDir\publish"
+$webProjectPath = Join-Path $srcRoot 'src\PartsUnlimitedWebsite\PartsUnlimitedWebsite.csproj'
 Write-Host '  Building...' -ForegroundColor Yellow
-& $msbuildPath $solutionPath `
+& $msbuildPath $webProjectPath `
     /p:Configuration=Release `
     /p:DeployOnBuild=true `
     /p:PublishProfile=FolderProfile `

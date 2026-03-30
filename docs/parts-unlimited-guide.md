@@ -96,6 +96,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    - 初回は約 10〜15 分かかります
    - Build Tools はサブスクリプション不要で無償利用可能です (ライセンス条項は参考リンクを参照)
    - スクリプトは `--quiet` オプションでサイレント インストールを行うため、実行時にライセンス条項へ自動的に同意したものとみなされます。事前に条項を確認してください
+   - .NET Framework 4.5.1 Targeting Pack (ビルド用の参照アセンブリ) が未インストールの場合は自動的に追加インストールします。Parts Unlimited は .NET 4.5.1 をターゲットとしており、Web ビルドワークロードの既定には含まれないためです
 3. **NuGet.exe ダウンロード**: パッケージ復元用
 4. **ソースコード取得**: GitHub から ZIP ダウンロード → 展開
 5. **ビルド**: NuGet restore → MSBuild Release ビルド

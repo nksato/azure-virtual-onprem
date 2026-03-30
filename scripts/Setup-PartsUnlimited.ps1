@@ -67,9 +67,25 @@ if (-not $msbuildPath) {
         throw "Build Tools のインストールに失敗しました (ExitCode: $($process.ExitCode))"
     }
 
-    # vswhere で MSBuild パスを再検索
-    $msbuildPath = & $vsWherePath -latest -requires Microsoft.Component.MSBuild `
-        -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+    # vswhere で MSBuild パスを再検索 (最大 30 秒リトライ)
+    for ($i = 0; $i -lt 6; $i++) {
+        if (Test-Path $vsWherePath) {
+            $msbuildPath = & $vsWherePath -latest -requires Microsoft.Component.MSBuild `
+                -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+        }
+        if ($msbuildPath) { break }
+        Write-Host '  Build Tools の登録を待機中...' -ForegroundColor Yellow
+        Start-Sleep -Seconds 5
+    }
+
+    # フォールバック: 既知のインストールパスを直接検索
+    if (-not $msbuildPath) {
+        $fallbackPaths = @(
+            "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe",
+            "$env:ProgramFiles\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
+        )
+        $msbuildPath = $fallbackPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+    }
 
     if (-not $msbuildPath) {
         throw 'MSBuild が見つかりません。Build Tools のインストールを確認してください。'
@@ -77,6 +93,22 @@ if (-not $msbuildPath) {
     Write-Host '  Build Tools をインストールしました。' -ForegroundColor Green
 } else {
     Write-Host "  Build Tools は既にインストールされています: $msbuildPath" -ForegroundColor Green
+}
+
+# .NET Framework 4.5.1 Targeting Pack の確認 (ビルドに必要、既定では含まれない)
+$targetingPackPath = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.1"
+if (-not (Test-Path $targetingPackPath)) {
+    Write-Host '  .NET Framework 4.5.1 Developer Pack をインストール中...' -ForegroundColor Yellow
+    $devPackPath = "$WorkDir\NDP451-DevPack-KB2861696-x86-x64-AllOS-ENU.exe"
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/?linkid=2204105' -OutFile $devPackPath -UseBasicParsing
+    $process = Start-Process -FilePath $devPackPath -ArgumentList '/quiet', '/norestart' -Wait -PassThru
+    if ($process.ExitCode -notin 0, 3010) {
+        throw ".NET 4.5.1 Developer Pack のインストールに失敗しました (ExitCode: $($process.ExitCode))"
+    }
+    Write-Host '  .NET 4.5.1 Developer Pack をインストールしました。' -ForegroundColor Green
+} else {
+    Write-Host '  .NET 4.5.1 Targeting Pack が見つかりました。' -ForegroundColor Green
 }
 
 # ----------------------------------------------------------
@@ -122,10 +154,11 @@ Write-Host '  NuGet パッケージを復元中...' -ForegroundColor Yellow
 & $nugetPath restore $solutionPath
 if ($LASTEXITCODE -ne 0) { throw 'NuGet restore に失敗しました。' }
 
-# MSBuild
+# MSBuild — Web サイトプロジェクトのみビルド (テスト・モデリングプロジェクトはスキップ)
 $publishDir = "$WorkDir\publish"
+$webProjectPath = Join-Path $srcRoot 'src\PartsUnlimitedWebsite\PartsUnlimitedWebsite.csproj'
 Write-Host '  ビルド中...' -ForegroundColor Yellow
-& $msbuildPath $solutionPath `
+& $msbuildPath $webProjectPath `
     /p:Configuration=Release `
     /p:DeployOnBuild=true `
     /p:PublishProfile=FolderProfile `

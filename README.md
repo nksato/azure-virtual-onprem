@@ -99,6 +99,37 @@ NAT Gateway: なし        NAT Gateway: なし        NAT Gateway: あり
    └── APP01 IIS インストール → ドメイン参加 (JsonADDomainExtension) → 再起動
 ```
 
+## Azure Arc 対応 (オプション)
+
+デプロイ済みの VM を Azure Arc 対応サーバーとして登録し、Arc の機能を評価できます。
+
+> **注意**: Azure VM での Arc 対応は**評価・テスト目的のみ**です。運用環境では使用しないでください。  
+> 参考: [Azure 仮想マシンで Azure Arc 対応サーバーを評価する](https://learn.microsoft.com/ja-jp/azure/azure-arc/servers/plan-evaluate-on-azure-virtual-machine)
+
+### 実行方法
+
+```powershell
+# 全 VM (DC01, DB01, APP01) を Arc 対応にする
+.\Enable-ArcOnVMs.ps1 -ResourceGroupName "rg-onpre"
+
+# 特定の VM のみ
+.\Enable-ArcOnVMs.ps1 -ResourceGroupName "rg-onpre" -VmNames @("OnPrem-Web")
+
+# Arc リソースを別のリソースグループに登録
+.\Enable-ArcOnVMs.ps1 -ResourceGroupName "rg-onpre" -ArcResourceGroupName "rg-arc"
+```
+
+### スクリプトの処理内容
+
+1. サービス プリンシパルの作成 (Azure Connected Machine Onboarding ロール)
+2. 各 VM で以下を実行:
+   - 環境変数 `MSFT_ARC_TEST=true` を設定
+   - VM 拡張機能を削除
+   - Azure VM ゲスト エージェントを無効化
+   - IMDS エンドポイント (169.254.169.254 / 169.254.169.253) をファイアウォールでブロック
+   - Azure Connected Machine Agent をインストール
+   - `azcmagent connect` で Azure Arc に接続
+
 ## デプロイ方法
 
 ### 方法 1: PowerShell スクリプト (推奨)
